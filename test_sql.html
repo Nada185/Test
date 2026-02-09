@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار القراءة من SQL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        select option {
+            padding: 10px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .selected-value {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-right: 4px solid #667eea;
+        }
+        
+        .selected-value h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .selected-value p {
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار القراءة من SQL Database</h1>
+        
+        <div class="form-group">
+            <label for="usageType">اختر نوع الاستعمال:</label>
+            <select id="usageType">
+                <option value="">-- جاري التحميل... --</option>
+            </select>
+        </div>
+        
+        <div id="status" class="status hidden"></div>
+        
+        <div id="selectedValue" class="selected-value hidden">
+            <h3>القيمة المختارة:</h3>
+            <p id="selectedText"></p>
+        </div>
+    </div>
+
+    <script>
+        // 🔧 رابط API - غيره حسب موقع ملفاتك
+        const API_URL = 'http://localhost/test_geomolg/get_usage_types.php';
+        
+        // عناصر الصفحة
+        const selectElement = document.getElementById('usageType');
+        const statusDiv = document.getElementById('status');
+        const selectedValueDiv = document.getElementById('selectedValue');
+        const selectedText = document.getElementById('selectedText');
+        
+        // دالة لعرض الحالة
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.classList.remove('hidden');
+        }
+        
+        // دالة لتحميل البيانات من SQL
+        async function loadUsageTypes() {
+            try {
+                // عرض رسالة التحميل
+                showStatus('جاري تحميل البيانات من SQL...', 'loading');
+                
+                // طلب البيانات من API
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                // التحقق من نجاح العملية
+                if (result.success) {
+                    // تفريغ القائمة
+                    selectElement.innerHTML = '<option value="">-- اختر نوع الاستعمال --</option>';
+                    
+                    // إضافة الخيارات
+                    result.data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        selectElement.appendChild(option);
+                    });
+                    
+                    // عرض رسالة النجاح
+                    showStatus('✅ تم تحميل ' + result.data.length + ' نوع استعمال من SQL بنجاح!', 'success');
+                    
+                    // إخفاء الرسالة بعد 3 ثواني
+                    setTimeout(() => {
+                        statusDiv.classList.add('hidden');
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(result.error || 'فشل في تحميل البيانات');
+                }
+                
+            } catch (error) {
+                console.error('خطأ:', error);
+                showStatus('❌ خطأ: ' + error.message, 'error');
+                selectElement.innerHTML = '<option value="">-- فشل التحميل --</option>';
+            }
+        }
+        
+        // دالة لعرض القيمة المختارة
+        function showSelectedValue() {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (selectElement.value) {
+                selectedText.textContent = selectedOption.textContent;
+                selectedValueDiv.classList.remove('hidden');
+            } else {
+                selectedValueDiv.classList.add('hidden');
+            }
+        }
+        
+        // تحميل البيانات عند فتح الصفحة
+        window.addEventListener('DOMContentLoaded', loadUsageTypes);
+        
+        // عرض القيمة عند التغيير
+        selectElement.addEventListener('change', showSelectedValue);
+    </script>
+</body>
+</html>
